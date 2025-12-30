@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:medizintek_app/presentation/pages/medizintek.dart';
-import 'package:medizintek_app/presentation/widgets/helper.dart';
-
 
 void main() {
-  initWindow();
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -21,4 +19,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
