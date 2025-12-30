@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
-import 'package:medizintek_app/presentation/widgets/loading_widget.dart';
 
 class Medizintek extends StatefulWidget {
   const Medizintek({super.key});
@@ -13,9 +12,6 @@ class Medizintek extends StatefulWidget {
 
 class _MedizintekState extends State<Medizintek> {
   late final WebViewController _controller;
-  bool _isLoading = true;
-  int _loadingProgress = 0;
-  Stopwatch _loadingTimer = Stopwatch();
 
   @override
   void initState() {
@@ -35,32 +31,15 @@ class _MedizintekState extends State<Medizintek> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
-            setState(() {
-              _loadingProgress = progress;
-            });
             debugPrint('WebView is loading (progress : $progress%)');
           },
           onPageStarted: (String url) {
-            setState(() {
-              _isLoading = true;
-              _loadingProgress = 0;
-            });
-            _loadingTimer.reset();
-            _loadingTimer.start();
             debugPrint('Page started loading: $url');
           },
           onPageFinished: (String url) {
-            _loadingTimer.stop();
-            setState(() {
-              _isLoading = false;
-            });
             debugPrint('Page finished loading: $url');
           },
           onWebResourceError: (WebResourceError error) {
-            _loadingTimer.stop();
-            setState(() {
-              _isLoading = false;
-            });
             debugPrint('Error: ${error.description}');
           },
           onNavigationRequest: (NavigationRequest request) {
@@ -81,14 +60,7 @@ class _MedizintekState extends State<Medizintek> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            WebViewWidget(controller: _controller),
-            if (_isLoading) LoadingWidget(loadingProgress: _loadingProgress, elapsedSeconds: _loadingTimer.elapsed.inSeconds),
-          ],
-        ),
-      ),
+      body: SafeArea(child: WebViewWidget(controller: _controller)),
     );
   }
 }
