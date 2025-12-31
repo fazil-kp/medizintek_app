@@ -28,6 +28,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const MaterialScrollBehavior().copyWith(scrollbars: false),
       title: 'Medizinitek',
       theme: ThemeData(
         primaryColor: const Color(0xFF129247),
