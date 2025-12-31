@@ -28,6 +28,7 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
   bool _isConnected = true;
   bool _isLoading = true;
   bool _hasError = false;
+  bool _controllerInitialized = false;
   int _loadingProgress = 0;
   String? _errorMessage;
   bool _canGoBack = false;
@@ -145,7 +146,10 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
     // Load initial URL
     await controller.loadRequest(Uri.parse(_homeUrl));
 
-    setState(() => _controller = controller);
+    setState(() {
+      _controller = controller;
+      _controllerInitialized = true;
+    });
   }
 
   NavigationDecision _handleNavigationRequest(NavigationRequest request) {
@@ -256,7 +260,7 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
         body: SafeArea(
           child: Stack(
             children: [
-              if (!_isConnected) OfflineScreen(onRetry: _checkConnectivityAndReload) else if (_hasError) ErrorScreen(errorMessage: _errorMessage, onRetry: _reloadWebView) else WebViewWidget(controller: _controller),
+              if (!_isConnected) OfflineScreen(onRetry: _checkConnectivityAndReload) else if (_hasError) ErrorScreen(errorMessage: _errorMessage, onRetry: _reloadWebView) else if (_controllerInitialized) WebViewWidget(controller: _controller) else const Center(child: CircularProgressIndicator()),
 
               // Loading indicator overlay
               LoadingIndicator(progress: _loadingProgress.toDouble(), isLoading: _isLoading),
