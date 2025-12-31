@@ -72,16 +72,15 @@ class _OfflineScreenState extends State<OfflineScreen> with TickerProviderStateM
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Fixed-size container for animated icon (prevents layout shifts)
-                  Container(
+        child: Column(
+          children: [
+            // Top section with centered animated icon
+            Expanded(
+              flex: 2, // Icon gets 2/3 of the space
+              child: Center(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Container(
                     width: 200, // Fixed width to prevent layout shifts
                     height: 200, // Fixed height to prevent layout shifts
                     alignment: Alignment.center,
@@ -134,115 +133,133 @@ class _OfflineScreenState extends State<OfflineScreen> with TickerProviderStateM
                       ],
                     ),
                   ),
+                ),
+              ),
+            ),
 
-                  const SizedBox(height: 48),
+            // Bottom section with content
+            Container(
+              padding: const EdgeInsets.all(24.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -2))],
+              ),
+              child: SingleChildScrollView(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Column(
+                    children: [
+                      // Title
+                      Text(
+                        'No Internet Connection',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF1a1a1a), letterSpacing: -0.5),
+                        textAlign: TextAlign.center,
+                      ),
 
-                  // Title
-                  Text(
-                    'No Internet Connection',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF1a1a1a), letterSpacing: -0.5),
-                    textAlign: TextAlign.center,
-                  ),
+                      const SizedBox(height: 16),
 
-                  const SizedBox(height: 20),
-
-                  // Description with icon
-                  Container(
-                    width: MediaQuery.of(context).size.width,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[200]!, width: 1),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(color: Colors.orange[50], borderRadius: BorderRadius.circular(8)),
-                          child: Icon(Icons.info_outline_rounded, size: 24, color: Colors.orange[400]),
+                      // Description with icon
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[200]!, width: 1),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text('Please check your internet connection and try again.', style: TextStyle(fontSize: 14, color: Colors.grey[700], height: 1.5)),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Help tips
-                  Container(
-                    width: MediaQuery.of(context).size.width,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50]?.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue[100]!, width: 1),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.lightbulb_outline_rounded, color: Colors.blue[700], size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Troubleshooting Tips',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue[700]),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(color: Colors.orange[50], borderRadius: BorderRadius.circular(8)),
+                              child: Icon(Icons.info_outline_rounded, size: 24, color: Colors.orange[400]),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text('Please check your internet connection and try again.', style: TextStyle(fontSize: 14, color: Colors.grey[700], height: 1.5)),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        _buildTip('Check WiFi or mobile data'),
-                        _buildTip('Try airplane mode on/off'),
-                        _buildTip('Restart your device'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // Retry Button
-                  Container(
-                    width: MediaQuery.of(context).size.width,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: LinearGradient(colors: _isRetrying ? [Colors.grey[400]!, Colors.grey[500]!] : [const Color(0xFF129247), const Color(0xFF0d6d33)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                      boxShadow: [BoxShadow(color: (_isRetrying ? Colors.grey[400]! : const Color(0xFF129247)).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6))],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: _isRetrying ? null : _retryConnection,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        disabledBackgroundColor: Colors.transparent,
-                        disabledForegroundColor: Colors.white,
                       ),
-                      child: _isRetrying
-                          ? Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+
+                      const SizedBox(height: 16),
+
+                      // Help tips
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50]?.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.blue[100]!, width: 1),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
                               children: [
-                                const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(Colors.white))),
-                                const SizedBox(width: 12),
-                                Text('Checking...', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                              ],
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.refresh_rounded, size: 22),
+                                Icon(Icons.lightbulb_outline_rounded, color: Colors.blue[700], size: 20),
                                 const SizedBox(width: 8),
-                                const Text('Try Again', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                                Text(
+                                  'Troubleshooting Tips',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue[700]),
+                                ),
                               ],
                             ),
-                    ),
+                            const SizedBox(height: 12),
+                            _buildTip('Check WiFi or mobile data'),
+                            _buildTip('Try airplane mode on/off'),
+                            _buildTip('Restart your device'),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Retry Button
+                      Container(
+                        width: double.infinity,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: LinearGradient(colors: _isRetrying ? [Colors.grey[400]!, Colors.grey[500]!] : [const Color(0xFF129247), const Color(0xFF0d6d33)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                          boxShadow: [BoxShadow(color: (_isRetrying ? Colors.grey[400]! : const Color(0xFF129247)).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6))],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: _isRetrying ? null : _retryConnection,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            disabledBackgroundColor: Colors.transparent,
+                            disabledForegroundColor: Colors.white,
+                          ),
+                          child: _isRetrying
+                              ? Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation<Color>(Colors.white))),
+                                    const SizedBox(width: 12),
+                                    Text('Checking...', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                                  ],
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.refresh_rounded, size: 22),
+                                    const SizedBox(width: 8),
+                                    const Text('Try Again', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
