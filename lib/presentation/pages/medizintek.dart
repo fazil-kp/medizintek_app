@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
@@ -8,6 +7,7 @@ import 'package:medizintek_app/services/connectivity_service.dart';
 import 'package:medizintek_app/presentation/widgets/offline_screen.dart';
 import 'package:medizintek_app/presentation/widgets/error_screen.dart';
 import 'package:medizintek_app/presentation/widgets/loading_indicator.dart';
+import 'package:medizintek_app/presentation/widgets/exit_confirmation_dialog.dart';
 
 class Medizintek extends StatefulWidget {
   const Medizintek({super.key});
@@ -236,13 +236,21 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
       await _updateBackButtonState();
       return false; // Don't exit app
     }
-    return true; // Exit app when at root
+    // Show exit confirmation dialog when at root
+    return await ExitConfirmationDialog.show(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _handleBackPress,
+    return PopScope(
+      canPop: false, // Prevent default back behavior
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (didPop) return;
+        final shouldPop = await _handleBackPress();
+        if (shouldPop && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
