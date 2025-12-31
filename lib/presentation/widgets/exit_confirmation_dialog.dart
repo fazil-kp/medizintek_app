@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 class ExitConfirmationDialog {
@@ -78,7 +80,7 @@ class ExitConfirmationDialog {
                               boxShadow: [BoxShadow(color: const Color(0xFF129247).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
                             ),
                             child: ElevatedButton(
-                              onPressed: () => Navigator.of(context).pop(true),
+                              onPressed: () => exit(0),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 shadowColor: Colors.transparent,
