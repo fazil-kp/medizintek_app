@@ -9,18 +9,28 @@ class ConnectivityService {
 
   final Connectivity _connectivity = Connectivity();
   final StreamController<bool> _connectionStatusController = StreamController<bool>.broadcast();
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   Stream<bool> get connectionStatus => _connectionStatusController.stream;
   bool _isConnected = true;
+  bool _isInitialized = false;
 
   bool get isConnected => _isConnected;
+  bool get isInitialized => _isInitialized;
 
   Future<void> initialize() async {
+    if (_isInitialized) return;
+
     try {
       final results = await _connectivity.checkConnectivity();
       _updateConnectionStatus(results);
 
-      _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
+      _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
+        _updateConnectionStatus,
+        onError: (error) => debugPrint('Connectivity stream error: $error'),
+      );
+
+      _isInitialized = true;
     } catch (e) {
       debugPrint('Error initializing connectivity: $e');
       _isConnected = false;
@@ -32,6 +42,7 @@ class ConnectivityService {
     final wasConnected = _isConnected;
     _isConnected = results.any((result) => result != ConnectivityResult.none);
 
+    // Only emit change if status actually changed
     if (wasConnected != _isConnected) {
       debugPrint('Connectivity changed: $_isConnected');
       _connectionStatusController.add(_isConnected);
@@ -39,6 +50,11 @@ class ConnectivityService {
   }
 
   Future<bool> checkConnection() async {
+    if (!_isInitialized) {
+      await initialize();
+      return _isConnected;
+    }
+
     try {
       final results = await _connectivity.checkConnectivity();
       _updateConnectionStatus(results);
@@ -50,6 +66,7 @@ class ConnectivityService {
   }
 
   void dispose() {
+    _connectivitySubscription?.cancel();
     _connectionStatusController.close();
   }
 }

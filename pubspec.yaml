@@ -32,7 +32,7 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   color: "#ffffff"
-  image: "assets/images/app_logo.png"
+  image: "assets/images/splash_logo.png"
   android: true
   ios: true
   android_gravity: center
@@ -42,7 +42,7 @@ flutter_native_splash:
 flutter:
   uses-material-design: true
 
+  # Performance optimizations
   assets:
     - assets/images/
-
 

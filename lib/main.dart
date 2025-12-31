@@ -5,8 +5,18 @@ import 'package:medizintek_app/presentation/pages/medizintek.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Performance optimizations
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: SystemUiOverlay.values);
+
   // Set status bar to white background with black icons
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(statusBarColor: Colors.white, statusBarIconBrightness: Brightness.dark, statusBarBrightness: Brightness.light));
+
+  // Enable performance optimizations
+  // Disable debug prints in release mode
+  assert(() {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+    return true;
+  }());
 
   runApp(const MyApp());
 }

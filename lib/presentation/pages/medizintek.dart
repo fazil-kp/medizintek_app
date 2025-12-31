@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -9,22 +10,37 @@ import 'package:medizintek_app/presentation/widgets/error_screen.dart';
 import 'package:medizintek_app/presentation/widgets/loading_indicator.dart';
 import 'package:medizintek_app/presentation/widgets/exit_confirmation_dialog.dart';
 
-class Medizintek extends StatefulWidget {
+class Medizintek extends StatelessWidget {
   const Medizintek({super.key});
 
   @override
-  State<Medizintek> createState() => _MedizintekState();
+  Widget build(BuildContext context) {
+    return const PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: _MedizintekContent(),
+        ),
+      ),
+    );
+  }
 }
 
-class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
+class _MedizintekContent extends StatefulWidget {
+  const _MedizintekContent();
+
+  @override
+  State<_MedizintekContent> createState() => _MedizintekContentState();
+}
+
+class _MedizintekContentState extends State<_MedizintekContent> with WidgetsBindingObserver {
   late final WebViewController _controller;
   final ConnectivityService _connectivityService = ConnectivityService();
 
-  // App configuration
   static const String _allowedDomain = 'medizintek.com';
   static const String _homeUrl = 'https://www.medizintek.com';
 
-  // State management
   bool _isConnected = true;
   bool _isLoading = true;
   bool _hasError = false;
@@ -32,6 +48,9 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
   int _loadingProgress = 0;
   String? _errorMessage;
   bool _canGoBack = false;
+
+  Timer? _progressUpdateTimer;
+  static const Duration _progressDebounceDuration = Duration(milliseconds: 100);
 
   @override
   void initState() {
@@ -44,6 +63,7 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _connectivityService.dispose();
+    _progressUpdateTimer?.cancel();
     super.dispose();
   }
 
@@ -58,6 +78,18 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
     await _connectivityService.initialize();
     _setupConnectivityListener();
     await _initializeWebView();
+  }
+
+  void _debouncedProgressUpdate(int progress) {
+    _progressUpdateTimer?.cancel();
+    _progressUpdateTimer = Timer(_progressDebounceDuration, () {
+      if (mounted) {
+        setState(() {
+          _loadingProgress = progress;
+          _isLoading = progress < 100;
+        });
+      }
+    });
   }
 
   void _setupConnectivityListener() {
@@ -75,7 +107,10 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
     late final PlatformWebViewControllerCreationParams params;
 
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
-      params = WebKitWebViewControllerCreationParams(allowsInlineMediaPlayback: true, mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{});
+      params = WebKitWebViewControllerCreationParams(
+        allowsInlineMediaPlayback: true,
+        mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
+      );
     } else {
       params = const PlatformWebViewControllerCreationParams();
     }
@@ -85,17 +120,9 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
     await controller.setJavaScriptMode(JavaScriptMode.unrestricted);
     await controller.setBackgroundColor(const Color(0x00000000));
 
-    // Configure navigation delegate with domain restrictions
     await controller.setNavigationDelegate(
       NavigationDelegate(
-        onProgress: (int progress) {
-          if (mounted) {
-            setState(() {
-              _loadingProgress = progress;
-              _isLoading = progress < 100;
-            });
-          }
-        },
+        onProgress: _debouncedProgressUpdate,
         onPageStarted: (String url) {
           debugPrint('Page started loading: $url');
           if (mounted) {
@@ -113,7 +140,6 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
               _isLoading = false;
               _loadingProgress = 100;
             });
-            // Update back navigation capability
             _updateBackButtonState();
           }
         },
@@ -127,23 +153,17 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
             });
           }
         },
-        onNavigationRequest: (NavigationRequest request) {
-          return _handleNavigationRequest(request);
-        },
+        onNavigationRequest: _handleNavigationRequest,
       ),
     );
 
-    // Configure Android-specific settings for security
     if (controller.platform is AndroidWebViewController) {
       final androidController = controller.platform as AndroidWebViewController;
-
-      // Security settings
       await androidController.setMediaPlaybackRequiresUserGesture(false);
       await androidController.setGeolocationEnabled(false);
       await androidController.setAllowFileAccess(false);
     }
 
-    // Load initial URL
     await controller.loadRequest(Uri.parse(_homeUrl));
 
     setState(() {
@@ -155,40 +175,39 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
   NavigationDecision _handleNavigationRequest(NavigationRequest request) {
     final uri = Uri.parse(request.url);
 
-    // Allow navigation within the allowed domain
     if (uri.host == _allowedDomain || uri.host == 'www.$_allowedDomain') {
       return NavigationDecision.navigate;
     }
 
-    // Handle external URLs - open in external browser
     if (_isExternalUrl(uri)) {
       _launchExternalUrl(request.url);
       return NavigationDecision.prevent;
     }
 
-    // Block navigation to unauthorized domains
     debugPrint('Blocked navigation to: ${request.url}');
     return NavigationDecision.prevent;
   }
 
   bool _isExternalUrl(Uri uri) {
-    // Define what constitutes external URLs that should open in browser
     final externalSchemes = ['tel:', 'mailto:', 'https:', 'http:'];
 
-    // Check for external schemes
     if (externalSchemes.contains(uri.scheme)) {
-      // Allow tel: and mailto: always
       if (uri.scheme == 'tel:' || uri.scheme == 'mailto:') {
         return true;
       }
 
-      // For https/http, check if it's not our domain and is likely an external link
       if (uri.host != _allowedDomain && uri.host != 'www.$_allowedDomain') {
-        // Common external domains (social media, payment processors, etc.)
-        final externalHosts = ['facebook.com', 'twitter.com', 'instagram.com', 'linkedin.com', 'youtube.com', 'whatsapp.com', 'telegram.org', 'paypal.com', 'stripe.com', 'google.com', 'maps.google.com', 'play.google.com', 'apps.apple.com'];
+        final externalHosts = [
+          'facebook.com', 'twitter.com', 'instagram.com', 'linkedin.com',
+          'youtube.com', 'whatsapp.com', 'telegram.org', 'paypal.com',
+          'stripe.com', 'google.com', 'maps.google.com', 'play.google.com', 'apps.apple.com'
+        ];
 
-        // Check if it's a known external host or has common external patterns
-        if (externalHosts.contains(uri.host) || uri.host.contains('facebook') || uri.host.contains('google') || uri.host.contains('whatsapp') || uri.host.contains('telegram')) {
+        if (externalHosts.contains(uri.host) ||
+            uri.host.contains('facebook') ||
+            uri.host.contains('google') ||
+            uri.host.contains('whatsapp') ||
+            uri.host.contains('telegram')) {
           return true;
         }
       }
@@ -238,16 +257,15 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
     if (_canGoBack) {
       await _controller.goBack();
       await _updateBackButtonState();
-      return false; // Don't exit app
+      return false;
     }
-    // Show exit confirmation dialog when at root
     return await ExitConfirmationDialog.show(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false, // Prevent default back behavior
+      canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
         if (didPop) return;
         final shouldPop = await _handleBackPress();
@@ -255,18 +273,22 @@ class _MedizintekState extends State<Medizintek> with WidgetsBindingObserver {
           Navigator.of(context).pop();
         }
       },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Stack(
-            children: [
-              if (!_isConnected) OfflineScreen(onRetry: _checkConnectivityAndReload) else if (_hasError) ErrorScreen(errorMessage: _errorMessage, onRetry: _reloadWebView) else if (_controllerInitialized) WebViewWidget(controller: _controller) else const Center(child: CircularProgressIndicator()),
+      child: Stack(
+        children: [
+          if (!_isConnected)
+            OfflineScreen(onRetry: _checkConnectivityAndReload)
+          else if (_hasError)
+            ErrorScreen(errorMessage: _errorMessage, onRetry: _reloadWebView)
+          else if (_controllerInitialized)
+            WebViewWidget(controller: _controller)
+          else
+            const Center(child: CircularProgressIndicator()),
 
-              // Loading indicator overlay
-              LoadingIndicator(progress: _loadingProgress.toDouble(), isLoading: _isLoading),
-            ],
+          LoadingIndicator(
+            progress: _loadingProgress.toDouble(),
+            isLoading: _isLoading,
           ),
-        ),
+        ],
       ),
     );
   }
